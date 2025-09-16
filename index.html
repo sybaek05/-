@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>만장일치 뒷풀이 정산기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+         .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px #c7d2fe;
+        }
+        .participant-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #e0e7ff;
+            color: #4338ca;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .result-table th, .result-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .mode-toggle-btn {
+            border: 1px solid #d1d5db;
+            color: #6b7280;
+        }
+        .mode-toggle-btn.active {
+            background-color: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <div class="flex justify-center items-center gap-4">
+                <img src="logo.jpg" alt="만장일치 로고" class="h-16 w-auto">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-900 text-left">만장일치 뒷풀이 정산기</h1>
+                </div>
+            </div>
+             <p class="text-lg text-gray-600 mt-2">나 백승엽인데, 이거 내가 만들었다.</p>
+        </header>
+        
+        <div class="flex justify-between items-center mb-6">
+            <div class="p-1 bg-gray-200 rounded-lg flex">
+                <button id="mode-detailed-btn" class="mode-toggle-btn px-4 py-1 rounded-md text-sm">상세 정산</button>
+                <button id="mode-simple-btn" class="mode-toggle-btn px-4 py-1 rounded-md text-sm">간편 N빵</button>
+            </div>
+            <div>
+                 <button id="history-btn" class="btn btn-secondary text-sm mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    정산 기록
+                </button>
+                <button id="reset-all-btn" class="btn btn-secondary text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M20 4l-5 5M4 20l5-5" /></svg>
+                    초기화
+                </button>
+            </div>
+        </div>
+
+        <div id="detailed-mode-content">
+            <section id="participant-section" class="card">
+                <h2 class="text-2xl font-semibold mb-4 border-b pb-2">1. 참가자 관리</h2>
+                <div class="flex flex-col sm:flex-row gap-2 mb-4">
+                    <input type="text" id="participant-name" placeholder="참가자 이름 입력 (예: 홍길동)" class="input-field flex-grow">
+                    <button id="add-participant-btn" class="btn btn-primary">추가</button>
+                </div>
+                <div id="participant-list" class="flex flex-wrap gap-2"></div>
+            </section>
+            <section id="rounds-section" class="card">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="text-2xl font-semibold">2. 차수별 비용 입력</h2>
+                    <button id="add-round-btn" class="btn btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                        차수 추가
+                    </button>
+                </div>
+                <div id="round-list" class="space-y-6"></div>
+            </section>
+        </div>
+
+        <div id="simple-mode-content" class="hidden">
+            <section class="card">
+                <h2 class="text-2xl font-semibold mb-4 border-b pb-2">간편 N빵 계산</h2>
+                <div class="space-y-4">
+                    <input type="number" id="simple-total-cost" placeholder="총 금액 (원)" class="input-field">
+                    <input type="number" id="simple-participant-count" placeholder="총 인원수 (명)" class="input-field">
+                </div>
+            </section>
+        </div>
+        
+        <section class="text-center my-8">
+            <button id="calculate-btn" class="btn btn-primary text-lg px-8 py-3 transform hover:scale-105">정산하기</button>
+        </section>
+
+        <section id="result-section" class="card hidden">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-2xl font-semibold">4. 최종 정산 결과</h2>
+                <button id="copy-result-btn" class="btn btn-secondary">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM5 11a1 1 0 100 2h4a1 1 0 100-2H5z" /></svg>
+                    결과 복사
+                </button>
+            </div>
+            <div id="result-output"></div>
+            <div id="calculation-process-container" class="mt-6 hidden">
+                <button id="toggle-process-btn" class="btn btn-secondary w-full">계산 과정 펼쳐보기</button>
+                <div id="calculation-process" class="hidden mt-4 p-4 bg-gray-50 rounded-md border text-sm space-y-4"></div>
+            </div>
+            <div id="copy-feedback" class="text-green-600 font-semibold mt-2 text-center hidden">결과가 클립보드에 복사되었습니다!</div>
+        </section>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden">
+        <div class="card w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h2 class="text-2xl font-semibold">정산 기록</h2>
+                <button id="close-history-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="history-content" class="overflow-y-auto">
+                <!-- History list or detail view will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 상태 관리 ---
+        let participants = [], rounds = [], history = [];
+        let simpleTotalCost = 0, simpleParticipantCount = 0;
+        let currentMode = 'detailed';
+
+        // --- DOM 요소 참조 ---
+        const participantNameInput = document.getElementById('participant-name'), addParticipantBtn = document.getElementById('add-participant-btn'), participantListDiv = document.getElementById('participant-list'), addRoundBtn = document.getElementById('add-round-btn'), roundListDiv = document.getElementById('round-list'), calculateBtn = document.getElementById('calculate-btn'), resultSection = document.getElementById('result-section'), resultOutputDiv = document.getElementById('result-output'), copyResultBtn = document.getElementById('copy-result-btn'), toggleProcessBtn = document.getElementById('toggle-process-btn'), calculationProcessDiv = document.getElementById('calculation-process'), calculationProcessContainer = document.getElementById('calculation-process-container'), modeDetailedBtn = document.getElementById('mode-detailed-btn'), modeSimpleBtn = document.getElementById('mode-simple-btn'), detailedModeContent = document.getElementById('detailed-mode-content'), simpleModeContent = document.getElementById('simple-mode-content'), simpleTotalCostInput = document.getElementById('simple-total-cost'), simpleParticipantCountInput = document.getElementById('simple-participant-count'), resetAllBtn = document.getElementById('reset-all-btn'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryModalBtn = document.getElementById('close-history-modal-btn'), historyContent = document.getElementById('history-content');
+
+        // --- 렌더링 함수 ---
+        const renderAppMode = () => {
+            detailedModeContent.classList.toggle('hidden', currentMode !== 'detailed');
+            simpleModeContent.classList.toggle('hidden', currentMode !== 'simple');
+            modeDetailedBtn.classList.toggle('active', currentMode === 'detailed');
+            modeSimpleBtn.classList.toggle('active', currentMode === 'simple');
+        };
+        
+        const renderParticipants = () => {
+            participantListDiv.innerHTML = participants.map((name, index) => `<div class="participant-tag"><span>${name}</span><button data-index="${index}" class="remove-participant-btn ml-2 text-red-500 hover:text-red-700">&times;</button></div>`).join('');
+            renderRounds();
+        };
+
+        const renderRounds = () => {
+            roundListDiv.innerHTML = rounds.map((round, index) => `
+                <div class="p-4 border rounded-lg bg-gray-50">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-semibold">${index + 1}차 정산</h3>
+                        <button data-index="${index}" class="remove-round-btn btn btn-danger btn-sm text-xs p-1 px-2">삭제</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <input type="text" value="${round.description}" data-index="${index}" class="round-description input-field" placeholder="장소/내용 (예: 닭갈비집)">
+                        <input type="number" value="${round.totalCost || ''}" data-index="${index}" class="round-total-cost input-field" placeholder="총액 (원)">
+                        <input type="number" value="${round.alcoholCost || ''}" data-index="${index}" class="round-alcohol-cost input-field" placeholder="그 중 술값 (원)">
+                    </div>
+                    <p class="font-medium text-sm text-gray-700 mb-2">참가자 선택:</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        ${participants.map(name => `
+                            <label class="flex items-center space-x-2 text-sm">
+                                <input type="checkbox" data-round-index="${index}" data-name="${name}" class="attendee-checkbox" ${round.attendees.includes(name) ? 'checked' : ''}>
+                                <span>${name}</span>
+                                <input type="checkbox" data-round-index="${index}" data-name="${name}" class="drinker-checkbox" ${round.drinkers.includes(name) ? 'checked' : ''} ${!round.attendees.includes(name) ? 'disabled' : ''}>
+                                <span class="text-xs text-blue-600">(주)</span>
+                            </label>`).join('')}
+                    </div>
+                </div>`).join('');
+        };
+        
+        const renderResults = (results, log) => {
+            if (currentMode === 'detailed') {
+                let individualResultsHtml = '<h3 class="text-xl font-semibold mb-2">👤 개인별 정산 금액</h3><div class="overflow-x-auto"><table class="w-full text-sm result-table"><thead><tr><th class="w-1/3">이름</th><th class="w-1/3">총 금액</th><th class="w-1/3">상세 내역</th></tr></thead><tbody>';
+                for (const name in results.individual) individualResultsHtml += `<tr><td class="font-semibold">${name}</td><td class="font-semibold text-indigo-600">${Math.round(results.individual[name].total).toLocaleString()}원</td><td>${results.individual[name].breakdown}</td></tr>`;
+                individualResultsHtml += '</tbody></table></div>';
+                let roundSummaryHtml = '<h3 class="text-xl font-semibold mt-6 mb-2">📊 차수별 요약</h3><div class="space-y-2">';
+                results.roundSummary.forEach(summary => roundSummaryHtml += `<div class="p-3 bg-gray-100 rounded-md text-sm">${summary}</div>`);
+                roundSummaryHtml += '</div>';
+                resultOutputDiv.innerHTML = individualResultsHtml + roundSummaryHtml;
+                let processHtml = '<h3 class="text-xl font-semibold mb-2">🧮 계산 과정 상세</h3>';
+                processHtml += '<div><h4 class="font-semibold mt-4 mb-1">1. 차수별 1인당 금액 계산</h4><div class="space-y-1 pl-2">';
+                log.rounds.forEach((r, i) => { processHtml += `<p><strong>${i + 1}차:</strong> 안주 ${Math.round(r.foodPerPerson).toLocaleString()}원/인, 주류 ${Math.round(r.alcoholPerDrinker).toLocaleString()}원/인</p>`; });
+                processHtml += '</div></div><div><h4 class="font-semibold mt-4 mb-1">2. 개인별 비용 합산</h4><div class="space-y-1 pl-2">';
+                log.individuals.forEach(p => { const breakdown = p.breakdown.map((c, i) => `${i + 1}차(${c.toLocaleString()}원)`).join(' + '); processHtml += `<p><strong>${p.name}:</strong> ${breakdown} = <strong>${Math.round(p.total).toLocaleString()}원</strong></p>`; });
+                processHtml += '</div></div>';
+                calculationProcessDiv.innerHTML = processHtml;
+                calculationProcessContainer.classList.remove('hidden');
+            } else {
+                resultOutputDiv.innerHTML = `<div class="text-center"><p class="text-gray-600">총 금액</p><p class="text-3xl font-bold text-indigo-600">${results.totalCost.toLocaleString()}원</p><p class="text-gray-600 mt-4">총 인원</p><p class="text-3xl font-bold text-indigo-600">${results.participantCount}명</p><hr class="my-4"><p class="text-gray-800 font-bold">1인당 정산 금액</p><p class="text-5xl font-extrabold text-red-500 mt-2">${results.perPerson.toLocaleString()}원</p></div>`;
+                calculationProcessContainer.classList.add('hidden');
+            }
+            calculationProcessDiv.classList.add('hidden');
+            toggleProcessBtn.textContent = '계산 과정 펼쳐보기';
+            resultSection.classList.remove('hidden');
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        const renderHistoryList = () => {
+            if (history.length === 0) {
+                historyContent.innerHTML = `<p class="text-center text-gray-500">저장된 정산 기록이 없습니다.</p>`;
+                return;
+            }
+            historyContent.innerHTML = `<div class="space-y-3">${history.map(item => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                    <div>
+                        <p class="font-semibold">${item.title}</p>
+                        <p class="text-sm text-gray-500">${item.date}</p>
+                    </div>
+                    <div>
+                        <button class="view-history-btn btn btn-secondary btn-sm text-xs" data-id="${item.id}">보기</button>
+                        <button class="delete-history-btn btn btn-danger btn-sm text-xs" data-id="${item.id}">삭제</button>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        };
+
+        const renderHistoryDetail = (id) => {
+            const item = history.find(h => h.id === id);
+            if (!item) return;
+            let detailHtml = `<button id="back-to-history-list-btn" class="btn btn-secondary mb-4">&larr; 목록으로 돌아가기</button>`;
+            
+            if (item.mode === 'detailed') {
+                let individualResultsHtml = '<h3 class="text-xl font-semibold mb-2">👤 개인별 정산 금액</h3><div class="overflow-x-auto"><table class="w-full text-sm result-table"><thead><tr><th class="w-1/3">이름</th><th class="w-1/3">총 금액</th><th class="w-1/3">상세 내역</th></tr></thead><tbody>';
+                for (const name in item.results.individual) individualResultsHtml += `<tr><td class="font-semibold">${name}</td><td class="font-semibold text-indigo-600">${Math.round(item.results.individual[name].total).toLocaleString()}원</td><td>${item.results.individual[name].breakdown}</td></tr>`;
+                individualResultsHtml += '</tbody></table></div>';
+                let roundSummaryHtml = '<h3 class="text-xl font-semibold mt-6 mb-2">📊 차수별 요약</h3><div class="space-y-2">';
+                item.results.roundSummary.forEach(summary => roundSummaryHtml += `<div class="p-3 bg-gray-100 rounded-md text-sm">${summary}</div>`);
+                roundSummaryHtml += '</div>';
+                detailHtml += individualResultsHtml + roundSummaryHtml;
+            } else {
+                 detailHtml += `<div class="text-center"><p class="text-gray-600">총 금액</p><p class="text-3xl font-bold text-indigo-600">${item.results.totalCost.toLocaleString()}원</p><p class="text-gray-600 mt-4">총 인원</p><p class="text-3xl font-bold text-indigo-600">${item.results.participantCount}명</p><hr class="my-4"><p class="text-gray-800 font-bold">1인당 정산 금액</p><p class="text-5xl font-extrabold text-red-500 mt-2">${item.results.perPerson.toLocaleString()}원</p></div>`;
+            }
+            historyContent.innerHTML = detailHtml;
+        };
+
+        // --- 데이터 저장/불러오기 ---
+        const saveData = () => localStorage.setItem('manjangDutchPay', JSON.stringify({ participants, rounds, simpleTotalCost, simpleParticipantCount, currentMode }));
+        const saveHistory = () => localStorage.setItem('manjangDutchPayHistory', JSON.stringify(history));
+
+        const loadData = () => {
+            const savedData = JSON.parse(localStorage.getItem('manjangDutchPay'));
+            history = JSON.parse(localStorage.getItem('manjangDutchPayHistory')) || [];
+            if (savedData) {
+                participants = savedData.participants || [];
+                rounds = savedData.rounds || [];
+                simpleTotalCost = savedData.simpleTotalCost || 0;
+                simpleParticipantCount = savedData.simpleParticipantCount || 0;
+                currentMode = savedData.currentMode || 'detailed';
+                simpleTotalCostInput.value = simpleTotalCost || '';
+                simpleParticipantCountInput.value = simpleParticipantCount || '';
+                renderParticipants();
+            }
+            renderAppMode();
+        };
+        
+        const clearData = () => {
+            if (confirm('현재 작업 내용과 브라우저에 저장된 데이터를 모두 초기화하시겠습니까? (정산 기록은 삭제되지 않습니다)')) {
+                participants = []; rounds = []; simpleTotalCost = 0; simpleParticipantCount = 0;
+                simpleTotalCostInput.value = ''; simpleParticipantCountInput.value = '';
+                resultSection.classList.add('hidden');
+                localStorage.removeItem('manjangDutchPay');
+                renderParticipants();
+            }
+        };
+
+        // --- 이벤트 핸들러 ---
+        const handleAddParticipant = () => {
+            const name = participantNameInput.value.trim();
+            if (name && !participants.includes(name)) {
+                participants.push(name); participantNameInput.value = ''; renderParticipants(); saveData();
+            } else if (participants.includes(name)) alert('이미 추가된 이름입니다.');
+            participantNameInput.focus();
+        };
+
+        // --- 계산 로직 ---
+        calculateBtn.addEventListener('click', () => {
+            if (currentMode === 'detailed') {
+                if (participants.length === 0 || rounds.length === 0) { alert('참가자와 차수 정보를 모두 입력해주세요.'); return; }
+                const individualTotals = {}, calculationLog = { rounds: [], individuals: [] };
+                participants.forEach(name => { individualTotals[name] = { total: 0, breakdown: [] }; });
+                const roundSummary = [];
+                rounds.forEach((round, index) => {
+                    const foodCost = round.totalCost - round.alcoholCost, alcoholCost = round.alcoholCost;
+                    const foodPerPerson = round.attendees.length > 0 ? foodCost / round.attendees.length : 0;
+                    const alcoholPerDrinker = round.drinkers.length > 0 ? alcoholCost / round.drinkers.length : 0;
+                    calculationLog.rounds.push({ foodPerPerson, alcoholPerDrinker });
+                    roundSummary.push(`[${index + 1}차: ${round.description || '내용 없음'}] 총액: ${round.totalCost.toLocaleString()}원, 참가자 ${round.attendees.length}명, 음주자 ${round.drinkers.length}명`);
+                    round.attendees.forEach(name => {
+                        let costForRound = foodPerPerson; if (round.drinkers.includes(name)) costForRound += alcoholPerDrinker;
+                        individualTotals[name].total += costForRound;
+                        if (!individualTotals[name].breakdown.includes(`${index + 1}차`)) individualTotals[name].breakdown.push(`${index + 1}차`);
+                    });
+                });
+                participants.forEach(name => {
+                    const pLog = { name, breakdown: [], total: individualTotals[name].total };
+                    rounds.forEach((r, i) => { let c = 0; if (r.attendees.includes(name)) { c += calculationLog.rounds[i].foodPerPerson; if (r.drinkers.includes(name)) c += calculationLog.rounds[i].alcoholPerDrinker; } pLog.breakdown.push(Math.round(c)); });
+                    calculationLog.individuals.push(pLog);
+                });
+                for (const name in individualTotals) { individualTotals[name].breakdown = individualTotals[name].breakdown.join(', '); }
+                const results = { individual: individualTotals, roundSummary };
+                renderResults(results, calculationLog);
+                // 자동 저장
+                const title = new Date().toLocaleDateString('ko-KR') + (rounds[0]?.description ? `: ${rounds[0].description}` : ' 정산');
+                history.unshift({ id: Date.now(), title, date: new Date().toLocaleString('ko-KR'), results, mode: 'detailed' });
+                saveHistory();
+            } else { // Simple mode
+                if (!simpleTotalCost || simpleTotalCost <= 0 || !simpleParticipantCount || simpleParticipantCount <= 0) { alert('총 금액과 인원수를 올바르게 입력해주세요.'); return; }
+                const perPerson = Math.ceil(simpleTotalCost / simpleParticipantCount);
+                renderResults({ totalCost: simpleTotalCost, participantCount: simpleParticipantCount, perPerson });
+            }
+        });
+        
+        // --- 기타 이벤트 리스너 ---
+        addParticipantBtn.addEventListener('click', handleAddParticipant);
+        participantNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAddParticipant(); });
+        participantListDiv.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-participant-btn')) {
+                const index = e.target.dataset.index, nameToRemove = participants[index];
+                participants.splice(index, 1);
+                rounds.forEach(r => { r.attendees = r.attendees.filter(p => p !== nameToRemove); r.drinkers = r.drinkers.filter(p => p !== nameToRemove); });
+                renderParticipants(); saveData();
+            }
+        });
+        addRoundBtn.addEventListener('click', () => { rounds.push({ description: '', totalCost: 0, alcoholCost: 0, attendees: [], drinkers: [] }); renderRounds(); saveData(); });
+        resetAllBtn.addEventListener('click', clearData);
+        modeDetailedBtn.addEventListener('click', () => { currentMode = 'detailed'; renderAppMode(); saveData(); });
+        modeSimpleBtn.addEventListener('click', () => { currentMode = 'simple'; renderAppMode(); saveData(); });
+        simpleTotalCostInput.addEventListener('input', (e) => { simpleTotalCost = parseFloat(e.target.value) || 0; saveData(); });
+        simpleParticipantCountInput.addEventListener('input', (e) => { simpleParticipantCount = parseInt(e.target.value) || 0; saveData(); });
+        roundListDiv.addEventListener('input', (e) => {
+            const i = e.target.dataset.index; if (i === undefined) return;
+            if (e.target.classList.contains('round-description')) rounds[i].description = e.target.value;
+            else if (e.target.classList.contains('round-total-cost')) rounds[i].totalCost = parseFloat(e.target.value) || 0;
+            else if (e.target.classList.contains('round-alcohol-cost')) rounds[i].alcoholCost = parseFloat(e.target.value) || 0;
+            saveData();
+        });
+        roundListDiv.addEventListener('change', (e) => {
+            if (e.target.type !== 'checkbox') return;
+            const i = e.target.dataset.roundIndex, name = e.target.dataset.name, round = rounds[i];
+            const drinkerCb = document.querySelector(`.drinker-checkbox[data-round-index="${i}"][data-name="${name}"]`);
+            if (e.target.classList.contains('attendee-checkbox')) {
+                if (e.target.checked) { round.attendees.push(name); drinkerCb.disabled = false; } else { round.attendees = round.attendees.filter(p => p !== name); round.drinkers = round.drinkers.filter(p => p !== name); drinkerCb.checked = false; drinkerCb.disabled = true; }
+            } else if (e.target.classList.contains('drinker-checkbox')) { if (e.target.checked) round.drinkers.push(name); else round.drinkers = round.drinkers.filter(p => p !== name); }
+            saveData();
+        });
+        roundListDiv.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-round-btn')) { const i = e.target.dataset.index; rounds.splice(i, 1); renderRounds(); saveData(); }
+        });
+        toggleProcessBtn.addEventListener('click', () => { const isHidden = calculationProcessDiv.classList.toggle('hidden'); toggleProcessBtn.textContent = isHidden ? '계산 과정 펼쳐보기' : '계산 과정 숨기기'; });
+        copyResultBtn.addEventListener('click', () => {
+            let textToCopy = "--- 최종 정산 결과 ---\n\n";
+            if (currentMode === 'detailed') {
+                const rows = resultOutputDiv.querySelectorAll('.result-table tbody tr');
+                textToCopy += "👤 개인별 정산 금액\n";
+                rows.forEach(row => { textToCopy += `${row.cells[0].innerText}: ${row.cells[1].innerText}\n`; });
+                textToCopy += "\n📊 차수별 요약\n";
+                resultOutputDiv.querySelectorAll('#result-output .space-y-2 > div').forEach(div => { textToCopy += div.innerText + "\n"; });
+            } else {
+                textToCopy += `총 금액: ${simpleTotalCost.toLocaleString()}원\n총 인원: ${simpleParticipantCount}명\n1인당 정산 금액: ${Math.ceil(simpleTotalCost / simpleParticipantCount).toLocaleString()}원`;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => { const fb = document.getElementById('copy-feedback'); fb.classList.remove('hidden'); setTimeout(() => fb.classList.add('hidden'), 2000); }).catch(err => { alert('결과 복사에 실패했습니다.'); });
+        });
+
+        // History Modal Listeners
+        historyBtn.addEventListener('click', () => { renderHistoryList(); historyModal.classList.remove('hidden'); });
+        closeHistoryModalBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
+        historyContent.addEventListener('click', (e) => {
+            const viewBtn = e.target.closest('.view-history-btn');
+            const deleteBtn = e.target.closest('.delete-history-btn');
+            const backBtn = e.target.closest('#back-to-history-list-btn');
+            if (viewBtn) renderHistoryDetail(Number(viewBtn.dataset.id));
+            if (deleteBtn) {
+                if (confirm('이 기록을 정말 삭제하시겠습니까?')) {
+                    history = history.filter(h => h.id !== Number(deleteBtn.dataset.id));
+                    saveHistory(); renderHistoryList();
+                }
+            }
+            if (backBtn) renderHistoryList();
+        });
+        
+        // --- 초기화 ---
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
