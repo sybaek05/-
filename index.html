@@ -12,6 +12,7 @@
         .input-field { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; outline: none; font-size: 0.9rem; }
         .input-field:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
         .participant-tag { display: inline-flex; align-items: center; background-color: #eef2ff; color: #4338ca; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 500; border: 1px solid #e0e7ff; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="text-slate-800 pb-12">
@@ -27,7 +28,7 @@
             </div>
         </header>
 
-        <!-- ⚡ N빵 계산기 (더 콤팩트하게) -->
+        <!-- ⚡ N빵 계산기 -->
         <section class="card border-2 border-indigo-100 bg-indigo-50/30 py-3">
             <div class="flex flex-wrap items-center gap-4">
                 <h2 class="font-bold text-indigo-700 whitespace-nowrap">⚡ N빵</h2>
@@ -44,27 +45,39 @@
             <!-- 왼쪽: 설정 영역 -->
             <div class="lg:col-span-4 space-y-4">
                 <section class="card border border-slate-100 h-fit">
-                    <h2 class="font-bold mb-3 flex items-center gap-2 text-slate-700">👤 명단 일괄 등록</h2>
-                    <textarea id="participant-names" rows="4" placeholder="쉼표나 엔터로 구분" class="input-field mb-2 text-sm"></textarea>
+                    <h2 class="font-bold mb-3 flex items-center gap-2 text-slate-700 text-sm">👤 명단 일괄 등록 (쉼표/엔터 구분)</h2>
+                    <textarea id="participant-names" rows="3" placeholder="복사한 명단을 여기에 붙여넣으세요" class="input-field mb-2 text-sm"></textarea>
                     <button id="add-participant-btn" class="bg-indigo-600 text-white w-full py-2.5 rounded-lg font-bold text-sm shadow-sm">명단 추가</button>
                     <div id="participant-list" class="flex flex-wrap gap-1.5 mt-3"></div>
                 </section>
 
                 <section class="card border border-slate-100 h-fit">
-                    <h2 class="font-bold mb-3 text-slate-700">💰 계좌 설정</h2>
+                    <h2 class="font-bold mb-3 text-slate-700 text-sm">💰 계좌 설정</h2>
                     <div class="space-y-2">
                         <input type="text" id="bank-info" oninput="saveData()" placeholder="은행 및 예금주" class="input-field">
                         <input type="text" id="account-number" oninput="saveData()" placeholder="계좌번호" class="input-field">
                     </div>
                 </section>
+
+                <!-- 📂 정산 히스토리 영역 -->
+                <section class="card border border-slate-100 h-fit">
+                    <h2 class="font-bold mb-3 text-slate-700 text-sm flex justify-between items-center">
+                        📂 지난 정산 기록
+                        <button onclick="clearHistory()" class="text-[10px] text-slate-400 font-normal hover:text-red-500">전체 삭제</button>
+                    </h2>
+                    <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                        <!-- 히스토리 아이템들이 여기에 쌓입니다 -->
+                        <p class="text-xs text-slate-400 text-center py-4">기록된 정산 내역이 없습니다.</p>
+                    </div>
+                </section>
                 
                 <div class="flex gap-2">
-                    <button onclick="resetRoundsOnly()" class="flex-1 bg-slate-200 text-slate-600 font-bold py-3 rounded-xl text-sm">내역 초기화</button>
+                    <button onclick="resetRoundsOnly()" class="flex-1 bg-slate-200 text-slate-600 font-bold py-3 rounded-xl text-xs sm:text-sm">내역 초기화</button>
                     <button id="calculate-btn" class="flex-[2] bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 text-lg">상세 정산하기</button>
                 </div>
             </div>
 
-            <!-- 오른쪽: 차수 입력 영역 (스크롤 없이 펼쳐짐) -->
+            <!-- 오른쪽: 차수 입력 영역 -->
             <div class="lg:col-span-8">
                 <section id="rounds-section">
                     <div class="flex justify-between items-center mb-4 px-1">
@@ -76,7 +89,7 @@
             </div>
         </div>
 
-        <!-- 모달 & 토스트 생략 (로직 동일) -->
+        <!-- 모달 & 토스트 -->
         <div id="result-modal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                 <div class="p-5 border-b flex justify-between items-center bg-white">
@@ -87,7 +100,7 @@
                     <div id="formatted-text" class="whitespace-pre-wrap font-medium text-slate-700 bg-white p-5 rounded-2xl border border-slate-200 shadow-inner text-sm leading-relaxed"></div>
                 </div>
                 <div class="p-5 bg-white border-t flex gap-3">
-                    <button id="copy-result-btn" class="flex-1 bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95">복사하기</button>
+                    <button id="copy-result-btn" class="flex-1 bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95">복사하고 기록 저장</button>
                     <button onclick="closeResult()" class="flex-1 bg-slate-100 text-slate-500 font-bold py-3.5 rounded-xl">닫기</button>
                 </div>
             </div>
@@ -98,34 +111,74 @@
     <script>
         let participants = [];
         let rounds = [];
+        let history = []; // 정산 히스토리 배열
 
         function saveData() {
             const data = {
-                participants, rounds,
+                participants, rounds, history,
                 bankInfo: document.getElementById('bank-info').value,
                 accountNumber: document.getElementById('account-number').value,
                 simpleTotal: document.getElementById('simple-total').value,
                 simpleCount: document.getElementById('simple-count').value
             };
-            localStorage.setItem('mj_settle_data', JSON.stringify(data));
+            localStorage.setItem('mj_settle_data_v2', JSON.stringify(data));
+            renderHistory();
         }
 
         function loadData() {
-            const saved = localStorage.getItem('mj_settle_data');
+            const saved = localStorage.getItem('mj_settle_data_v2');
             if (saved) {
                 const data = JSON.parse(saved);
                 participants = data.participants || [];
                 rounds = data.rounds || [];
+                history = data.history || [];
                 document.getElementById('bank-info').value = data.bankInfo || "";
                 document.getElementById('account-number').value = data.accountNumber || "";
                 document.getElementById('simple-total').value = data.simpleTotal || "";
                 document.getElementById('simple-count').value = data.simpleCount || "";
                 doSimpleCalc();
             } else {
-                participants = ["김철수", "이영희", "박민수"];
+                participants = ["홍길동", "김철수", "이영희"];
                 rounds = [{ description: '1차 장소', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
             }
             renderParticipants();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if (history.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">기록된 정산 내역이 없습니다.</p>';
+                return;
+            }
+            list.innerHTML = history.slice().reverse().map((item, idx) => `
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 group">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[10px] font-bold text-indigo-500">${item.date}</span>
+                        <button onclick="deleteHistory(${history.length - 1 - idx})" class="text-[10px] text-slate-300 hover:text-red-500">삭제</button>
+                    </div>
+                    <p class="text-[11px] text-slate-600 line-clamp-2 mb-2">${item.summary.split('\n')[0]}...</p>
+                    <button onclick="copyHistory(${history.length - 1 - idx})" class="w-full py-1.5 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100">결과 다시 복사</button>
+                </div>
+            `).join('');
+        }
+
+        function copyHistory(idx) {
+            navigator.clipboard.writeText(history[idx].summary).then(() => showToast("과거 정산 결과가 복사되었습니다!"));
+        }
+
+        function deleteHistory(idx) {
+            if(confirm("이 기록을 삭제하시겠습니까?")) {
+                history.splice(idx, 1);
+                saveData();
+            }
+        }
+
+        function clearHistory() {
+            if(confirm("모든 정산 기록을 삭제하시겠습니까?")) {
+                history = [];
+                saveData();
+            }
         }
 
         function doSimpleCalc() {
@@ -153,10 +206,7 @@
         function removeParticipant(index) {
             const name = participants[index];
             participants.splice(index, 1);
-            rounds.forEach(r => { 
-                r.attendees = r.attendees.filter(p => p !== name); 
-                r.drinkers = r.drinkers.filter(p => p !== name); 
-            });
+            rounds.forEach(r => { r.attendees = r.attendees.filter(p => p !== name); r.drinkers = r.drinkers.filter(p => p !== name); });
             saveData(); renderParticipants();
         }
 
@@ -178,22 +228,17 @@
                 <div class="card border border-slate-200 shadow-sm relative">
                     <div class="flex justify-between items-start mb-3">
                         <div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-500">
-                                참석 ${r.attendees.length} / 음주 ${r.drinkers.length}
-                            </span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-500">참석 ${r.attendees.length} / 음주 ${r.drinkers.length}</span>
                             <div class="mt-1 flex items-center gap-2">
                                 <input type="text" value="${r.description}" oninput="updateRoundData(${i}, 'description', this.value)" class="font-bold text-lg border-b border-dashed border-slate-200 focus:outline-none focus:border-indigo-500">
                             </div>
                         </div>
                         <button onclick="rounds.splice(${i},1); saveData(); renderRounds();" class="text-slate-300 hover:text-rose-500 text-sm">삭제</button>
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <input type="number" value="${r.totalCost || ''}" oninput="updateRoundData(${i}, 'totalCost', this.value)" class="input-field" placeholder="총액">
                         <input type="number" value="${r.alcoholCost || ''}" oninput="updateRoundData(${i}, 'alcoholCost', this.value)" class="input-field" placeholder="술값">
                     </div>
-
-                    <!-- 명단 스크롤 제거: 모든 인원 격자 형태로 노출 -->
                     <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 border-t border-slate-50 pt-4">
                         ${participants.map(name => `
                             <div class="flex flex-col items-center gap-1.5 p-1.5 rounded-lg border border-slate-50 ${r.attendees.includes(name) ? 'bg-slate-50 shadow-sm' : 'opacity-30'}">
@@ -207,8 +252,8 @@
                 </div>`).join('');
         }
 
-        // 공통 로직 (저장, 토글, 정산 등)
         function updateRoundData(idx, f, v) { rounds[idx][f] = (f==='totalCost'||f==='alcoholCost')?Number(v)||0 : v; saveData(); renderRounds(); }
+        
         function togglePerson(rIdx, name, type) {
             const r = rounds[rIdx]; const list = type === 'attend' ? r.attendees : r.drinkers;
             if (list.includes(name)) {
@@ -220,17 +265,21 @@
             }
             saveData(); renderRounds();
         }
+        
         function resetRoundsOnly() {
             if(confirm("정산 내역만 초기화할까요? 명단은 유지됩니다.")) {
                 rounds = [{ description: '1차 장소', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
                 saveData(); renderRounds();
             }
         }
+
         function closeResult() { document.getElementById('result-modal').classList.add('hidden'); }
+        
         function copySimpleResult() {
             const txt = `⚡ N빵 결과: 인당 ${document.getElementById('simple-per-person').innerText}원\n💰 계좌: ${document.getElementById('account-number').value} ${document.getElementById('bank-info').value}`;
             navigator.clipboard.writeText(txt).then(() => showToast("복사 완료!"));
         }
+
         function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0', 2000); }
 
         document.getElementById('calculate-btn').addEventListener('click', () => {
@@ -246,11 +295,25 @@
             const sorted = Object.keys(grouped).map(Number).sort((a,b)=>b-a);
             const res = `📢 정산 안내\n💰 계좌: ${document.getElementById('account-number').value} ${document.getElementById('bank-info').value}\n\n` + 
                 sorted.map(a => `💵 ${a.toLocaleString()}원 (${grouped[a].length}명)\n${grouped[a].join(', ')}`).join('\n\n') + `\n\n------------------\n\n${summary}`;
+            
             document.getElementById('formatted-text').innerText = res;
             document.getElementById('result-modal').classList.remove('hidden');
+
+            // 히스토리 저장 로직 추가
+            const now = new Date();
+            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            history.push({ date: dateStr, summary: res });
+            saveData();
         });
-        document.getElementById('copy-result-btn').addEventListener('click', () => { navigator.clipboard.writeText(document.getElementById('formatted-text').innerText).then(() => showToast("복사 완료!")); });
-        document.getElementById('add-round-btn').addEventListener('click', () => { rounds.push({ description: `${rounds.length+1}차`, totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }); renderRounds(); });
+
+        document.getElementById('copy-result-btn').addEventListener('click', () => { 
+            navigator.clipboard.writeText(document.getElementById('formatted-text').innerText).then(() => showToast("복사 완료!")); 
+        });
+
+        document.getElementById('add-round-btn').addEventListener('click', () => { 
+            rounds.push({ description: `${rounds.length+1}차`, totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }); 
+            renderRounds(); 
+        });
 
         window.onload = loadData;
     </script>
