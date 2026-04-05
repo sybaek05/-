@@ -28,7 +28,7 @@
                 </div>
                 <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">만장일치 정산기</h1>
             </div>
-            <p class="text-slate-500 mt-1 text-lg font-medium">인원 현황을 실시간으로 확인하며 정산하세요!</p>
+            <p class="text-slate-500 mt-1 text-lg font-medium">2026.04.05 백승엽 업데이트</p>
         </header>
 
         <!-- ⚡ 초간편 N빵 계산기 -->
@@ -58,9 +58,9 @@
         <!-- 1. 참가자 관리 -->
         <section class="card border border-slate-100">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">1</span> 참가자 등록</h2>
-            <div class="flex flex-col sm:flex-row gap-2 mb-4">
-                <input type="text" id="participant-name" placeholder="이름 입력 후 엔터" class="input-field flex-grow">
-                <button id="add-participant-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-md active:scale-95">추가</button>
+            <div class="flex flex-col gap-2 mb-4">
+                <textarea id="participant-names" rows="2" placeholder="이름들을 쉼표(,)나 줄바꿈으로 구분해서 붙여넣으세요 (예: 홍길동, 김철수, 이영희)" class="input-field no-scrollbar"></textarea>
+                <button id="add-participant-btn" class="bg-indigo-600 text-white w-full py-3 rounded-lg font-bold shadow-md hover:bg-indigo-700 active:scale-[0.98] transition-all">명단 일괄 추가</button>
             </div>
             <div id="participant-list" class="flex flex-wrap gap-2"></div>
         </section>
@@ -84,10 +84,11 @@
         </section>
 
         <div class="flex gap-3 justify-center my-10">
-            <button onclick="resetRoundsOnly()" class="bg-slate-200 text-slate-600 text-lg font-bold px-8 py-4 rounded-2xl hover:bg-slate-300 transition-all">정산 내역 초기화</button>
-            <button id="calculate-btn" class="bg-slate-900 text-white text-xl font-bold px-12 py-4 rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95">상세 정산하기</button>
+            <button onclick="resetRoundsOnly()" class="bg-slate-200 text-slate-600 text-lg font-bold px-8 py-4 rounded-2xl hover:bg-slate-300 transition-all text-sm sm:text-lg">정산 내역 초기화</button>
+            <button id="calculate-btn" class="bg-slate-900 text-white text-lg sm:text-xl font-bold px-12 py-4 rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95">상세 정산하기</button>
         </div>
 
+        <!-- 결과 모달 -->
         <div id="result-modal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                 <div class="p-6 border-b flex justify-between items-center bg-white">
@@ -104,7 +105,9 @@
             </div>
         </div>
 
-        <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity z-[60] pointer-events-none">복사되었습니다!</div>
+        <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity z-[60] pointer-events-none font-medium">
+            복사되었습니다!
+        </div>
     </div>
 
     <script>
@@ -135,7 +138,7 @@
                 document.getElementById('simple-count').value = data.simpleCount || "";
                 doSimpleCalc();
             } else {
-                participants = ["김재동", "이유동", "백승엽", "김영수", "박정은", "송형록"];
+                participants = ["홍길동", "김철수", "이영희"];
                 rounds = [{ description: '1차 고기집', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
                 document.getElementById('bank-info').value = "카카오뱅크 백승엽";
                 document.getElementById('account-number').value = "3333345184515";
@@ -199,26 +202,42 @@
             renderParticipants();
         }
 
-        function addParticipant() {
-            const input = document.getElementById('participant-name');
-            const name = input.value.trim();
-            if (name && !participants.includes(name)) {
-                participants.push(name);
-                input.value = '';
-                rounds.forEach(r => { r.attendees.push(name); r.drinkers.push(name); });
-                saveData();
-                renderParticipants();
-            }
-            input.focus();
+        // [핵심 변경] 일괄 추가 로직
+        function addParticipantsBulk() {
+            const textarea = document.getElementById('participant-names');
+            const rawValue = textarea.value;
+            
+            // 쉼표(,)나 줄바꿈(\n) 기준으로 분리
+            const names = rawValue.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+            
+            if (names.length === 0) return showToast("이름을 입력해주세요.");
+
+            let addedCount = 0;
+            names.forEach(name => {
+                if (!participants.includes(name)) {
+                    participants.push(name);
+                    rounds.forEach(r => {
+                        r.attendees.push(name);
+                        r.drinkers.push(name);
+                    });
+                    addedCount++;
+                }
+            });
+
+            textarea.value = '';
+            saveData();
+            renderParticipants();
+            showToast(`${addedCount}명이 추가되었습니다.`);
         }
 
-        document.getElementById('add-participant-btn').addEventListener('click', addParticipant);
-        document.getElementById('participant-name').addEventListener('keypress', e => e.key === 'Enter' && addParticipant());
-        document.getElementById('add-round-btn').addEventListener('click', () => { 
+        document.getElementById('add-participant-btn').addEventListener('click', addParticipantsBulk);
+
+        function addRound() { 
             rounds.push({ description: `${rounds.length + 1}차 장소`, totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }); 
             saveData();
             renderRounds(); 
-        });
+        }
+        document.getElementById('add-round-btn').addEventListener('click', addRound);
 
         function updateRoundData(index, field, value) { 
             rounds[index][field] = (field === 'totalCost' || field === 'alcoholCost') ? Number(value) || 0 : value; 
@@ -243,13 +262,11 @@
             const listDiv = document.getElementById('round-list');
             listDiv.innerHTML = rounds.map((r, i) => `
                 <div class="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm relative">
-                    <!-- 왼쪽 상단 현황 배지 -->
                     <div class="flex items-center gap-1 mb-2">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                             참석 ${r.attendees.length} / 음주 ${r.drinkers.length}
                         </span>
                     </div>
-                    
                     <div class="flex justify-between items-center mb-4">
                         <input type="text" value="${r.description}" oninput="updateRoundData(${i}, 'description', this.value)" class="font-bold text-lg border-b border-dashed border-slate-300 focus:outline-none focus:border-indigo-500 w-1/2">
                         <button onclick="rounds.splice(${i},1); saveData(); renderRounds();" class="text-rose-400 hover:text-rose-600 font-bold">삭제</button>
