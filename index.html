@@ -28,9 +28,10 @@
                 </div>
                 <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">만장일치 정산기</h1>
             </div>
-            <p class="text-slate-500 mt-1 text-lg font-medium">2026.04.05 백승엽 업데이트.</p>
+            <p class="text-slate-500 mt-1 text-lg font-medium">자동 저장 기능으로 안심하고 정산하세요!</p>
         </header>
 
+        <!-- 1. 참가자 관리 -->
         <section class="card border border-slate-100">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">1</span> 참가자 등록</h2>
             <div class="flex flex-col sm:flex-row gap-2 mb-4">
@@ -40,34 +41,38 @@
             <div id="participant-list" class="flex flex-wrap gap-2"></div>
         </section>
 
+        <!-- 2. 계좌 정보 설정 -->
         <section class="card border border-slate-100">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">2</span> 입금 계좌 정보</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label class="text-xs font-bold text-slate-400 block mb-1">은행 및 예금주</label><input type="text" id="bank-info" value="카카오뱅크 백승엽" class="input-field"></div>
-                <div><label class="text-xs font-bold text-slate-400 block mb-1">계좌번호</label><input type="text" id="account-number" value="3333345184515" class="input-field"></div>
+                <div><label class="text-xs font-bold text-slate-400 block mb-1">은행 및 예금주</label><input type="text" id="bank-info" oninput="saveData()" class="input-field"></div>
+                <div><label class="text-xs font-bold text-slate-400 block mb-1">계좌번호</label><input type="text" id="account-number" oninput="saveData()" class="input-field"></div>
             </div>
         </section>
 
+        <!-- 3. 차수별 비용 입력 -->
         <section id="rounds-section" class="card border border-slate-100">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">3</span> 차수별 비용 입력</h2>
-                <button id="add-round-btn" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">+ 차수 추가</button>
+                <button id="add-round-btn" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100">+ 차수 추가</button>
             </div>
             <div id="round-list" class="space-y-4"></div>
         </section>
 
-        <div class="text-center my-10">
-            <button id="calculate-btn" class="bg-slate-900 text-white text-xl font-bold px-12 py-4 rounded-2xl shadow-xl active:scale-95 transition-all">정산하기</button>
+        <div class="flex gap-3 justify-center my-10">
+            <button onclick="resetData()" class="bg-slate-200 text-slate-600 text-lg font-bold px-8 py-4 rounded-2xl hover:bg-slate-300 transition-all">전체 초기화</button>
+            <button id="calculate-btn" class="bg-slate-900 text-white text-xl font-bold px-12 py-4 rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95">정산하기</button>
         </div>
 
+        <!-- 결과 모달 -->
         <div id="result-modal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200">
+            <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                 <div class="p-6 border-b flex justify-between items-center bg-white">
                     <h2 class="text-2xl font-bold text-slate-900">📢 정산 결과 안내</h2>
                     <button onclick="closeResult()" class="text-slate-400 hover:text-slate-600 p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                 </div>
-                <div id="result-output" class="p-8 overflow-y-auto flex-grow bg-slate-50">
-                    <div id="formatted-text" class="whitespace-pre-wrap font-medium text-slate-700 bg-white p-6 rounded-2xl border border-slate-200 shadow-inner"></div>
+                <div id="result-output" class="p-8 overflow-y-auto no-scrollbar flex-grow bg-slate-50">
+                    <div id="formatted-text" class="whitespace-pre-wrap font-medium text-slate-700 bg-white p-6 rounded-2xl border border-slate-200 shadow-inner leading-relaxed text-sm sm:text-base"></div>
                 </div>
                 <div class="p-6 bg-white border-t flex flex-col sm:flex-row gap-3">
                     <button id="copy-result-btn" class="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95">정산문구 복사하기</button>
@@ -80,32 +85,94 @@
     </div>
 
     <script>
-        let participants = ["김재동", "이유동", "백승엽", "김영수", "박정은", "송형록", "최은비", "한나결", "권승민", "김효정", "이소영", "박시우"];
-        let rounds = [{ description: '1차 고기집', totalCost: 240000, alcoholCost: 40000, attendees: [...participants], drinkers: ["김재동", "이유동", "백승엽", "김영수", "박정은", "송형록", "최은비", "한나결", "권승민"] }];
+        // 초기 데이터 (기존 기록이 있으면 불러오고 없으면 기본값)
+        let participants = [];
+        let rounds = [];
+
+        // 데이터 저장 함수
+        function saveData() {
+            const data = {
+                participants,
+                rounds,
+                bankInfo: document.getElementById('bank-info').value,
+                accountNumber: document.getElementById('account-number').value
+            };
+            localStorage.setItem('mj_settle_data', JSON.stringify(data));
+        }
+
+        // 데이터 불러오기 함수
+        function loadData() {
+            const saved = localStorage.getItem('mj_settle_data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                participants = data.participants || [];
+                rounds = data.rounds || [];
+                document.getElementById('bank-info').value = data.bankInfo || "카카오뱅크 백승엽";
+                document.getElementById('account-number').value = data.accountNumber || "3333345184515";
+            } else {
+                // 저장된 게 아예 없을 때 초기 예시 데이터
+                participants = ["김재동", "이유동", "백승엽", "김영수", "박정은", "송형록", "최은비", "한나결"];
+                rounds = [{ description: '1차 장소', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
+                document.getElementById('bank-info').value = "카카오뱅크 백승엽";
+                document.getElementById('account-number').value = "3333345184515";
+            }
+            renderParticipants();
+        }
+
+        // 전체 초기화
+        function resetData() {
+            if(confirm("모든 입력 내역을 삭제하시겠습니까? (참가자 명단 포함)")) {
+                localStorage.removeItem('mj_settle_data');
+                location.reload();
+            }
+        }
 
         function showToast(msg) { const toast = document.getElementById('toast'); toast.innerText = msg; toast.style.opacity = '1'; setTimeout(() => toast.style.opacity = '0', 2000); }
+        
         function renderParticipants() {
             const listDiv = document.getElementById('participant-list');
-            listDiv.innerHTML = participants.map((name, index) => `<div class="participant-tag"><span>${name}</span><button onclick="removeParticipant(${index})" class="ml-2 text-indigo-300 hover:text-rose-500">&times;</button></div>`).join('');
+            listDiv.innerHTML = participants.map((name, index) => `
+                <div class="participant-tag">
+                    <span>${name}</span>
+                    <button onclick="removeParticipant(${index})" class="ml-2 text-indigo-300 hover:text-rose-500">&times;</button>
+                </div>`).join('');
             renderRounds();
         }
+
         function removeParticipant(index) {
             const name = participants[index];
             participants.splice(index, 1);
             rounds.forEach(r => { r.attendees = r.attendees.filter(p => p !== name); r.drinkers = r.drinkers.filter(p => p !== name); });
+            saveData();
             renderParticipants();
         }
+
         function addParticipant() {
             const input = document.getElementById('participant-name');
             const name = input.value.trim();
-            if (name && !participants.includes(name)) { participants.push(name); input.value = ''; rounds.forEach(r => { r.attendees.push(name); r.drinkers.push(name); }); renderParticipants(); }
+            if (name && !participants.includes(name)) {
+                participants.push(name);
+                input.value = '';
+                rounds.forEach(r => { r.attendees.push(name); r.drinkers.push(name); });
+                saveData();
+                renderParticipants();
+            }
             input.focus();
         }
+
         document.getElementById('add-participant-btn').addEventListener('click', addParticipant);
         document.getElementById('participant-name').addEventListener('keypress', e => e.key === 'Enter' && addParticipant());
-        document.getElementById('add-round-btn').addEventListener('click', () => { rounds.push({ description: `${rounds.length + 1}차`, totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }); renderRounds(); });
+        document.getElementById('add-round-btn').addEventListener('click', () => { 
+            rounds.push({ description: `${rounds.length + 1}차 장소`, totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }); 
+            saveData();
+            renderRounds(); 
+        });
 
-        function updateRoundData(index, field, value) { rounds[index][field] = (field === 'totalCost' || field === 'alcoholCost') ? Number(value) || 0 : value; }
+        function updateRoundData(index, field, value) { 
+            rounds[index][field] = (field === 'totalCost' || field === 'alcoholCost') ? Number(value) || 0 : value; 
+            saveData();
+        }
+        
         function togglePerson(rIdx, name, type) {
             const r = rounds[rIdx];
             const list = type === 'attend' ? r.attendees : r.drinkers;
@@ -116,6 +183,7 @@
                 list.push(name);
                 if (type === 'drink' && !r.attendees.includes(name)) r.attendees.push(name);
             }
+            saveData();
             renderRounds();
         }
 
@@ -125,13 +193,13 @@
                 <div class="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm">
                     <div class="flex justify-between items-center mb-4">
                         <input type="text" value="${r.description}" oninput="updateRoundData(${i}, 'description', this.value)" class="font-bold text-lg border-b border-dashed border-slate-300 focus:outline-none focus:border-indigo-500 w-1/2">
-                        <button onclick="rounds.splice(${i},1); renderRounds();" class="text-rose-400 hover:text-rose-600">삭제</button>
+                        <button onclick="rounds.splice(${i},1); saveData(); renderRounds();" class="text-rose-400 hover:text-rose-600 font-bold">삭제</button>
                     </div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div><label class="text-xs font-bold text-slate-400 block mb-1">총액</label><input type="number" value="${r.totalCost || ''}" oninput="updateRoundData(${i}, 'totalCost', this.value)" class="input-field"></div>
-                        <div><label class="text-xs font-bold text-slate-400 block mb-1">술값</label><input type="number" value="${r.alcoholCost || ''}" oninput="updateRoundData(${i}, 'alcoholCost', this.value)" class="input-field"></div>
+                        <div><label class="text-xs font-bold text-slate-400 block mb-1">그 중 술값</label><input type="number" value="${r.alcoholCost || ''}" oninput="updateRoundData(${i}, 'alcoholCost', this.value)" class="input-field"></div>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 border-t border-slate-50 pt-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto no-scrollbar border-t border-slate-50 pt-3">
                         ${participants.map(name => `
                             <div class="flex flex-col p-2 rounded-lg ${r.attendees.includes(name) ? 'bg-slate-50' : 'bg-transparent opacity-40'}">
                                 <span class="text-xs font-bold text-slate-700 truncate mb-1">${name}</span>
@@ -148,24 +216,48 @@
         document.getElementById('calculate-btn').addEventListener('click', () => {
             if (participants.length === 0) return showToast("참가자를 등록해주세요.");
             const totals = {}; participants.forEach(p => totals[p] = 0);
-            rounds.forEach(r => {
+            
+            let roundSummary = "📊 차수별 요약 (참고용)\n\n";
+            rounds.forEach((r, idx) => {
                 const foodPer = r.attendees.length ? (r.totalCost - r.alcoholCost) / r.attendees.length : 0;
                 const drinkPer = r.drinkers.length ? r.alcoholCost / r.drinkers.length : 0;
-                participants.forEach(p => { if(r.attendees.includes(p)) totals[p] += foodPer; if(r.drinkers.includes(p)) totals[p] += drinkPer; });
+                
+                participants.forEach(p => { 
+                    if(r.attendees.includes(p)) totals[p] += foodPer; 
+                    if(r.drinkers.includes(p)) totals[p] += drinkPer; 
+                });
+                
+                roundSummary += `[${idx + 1}차: ${r.description}] 총액: ${r.totalCost.toLocaleString()}원 (${r.attendees.length}명 참석)\n`;
             });
-            const grouped = {}; participants.forEach(p => { const amt = Math.floor(totals[p]); if(!grouped[amt]) grouped[amt] = []; grouped[amt].push(p); });
+
+            const grouped = {}; 
+            participants.forEach(p => { 
+                const amt = Math.floor(totals[p]); 
+                if(amt > 0) {
+                    if(!grouped[amt]) grouped[amt] = []; 
+                    grouped[amt].push(p); 
+                }
+            });
+
             const sortedAmts = Object.keys(grouped).map(Number).sort((a,b) => b-a);
             const bank = document.getElementById('bank-info').value;
             const account = document.getElementById('account-number').value;
-            resultString = `📢 뒷풀이 정산안내\n본인 성함을 확인해 주시고, 아래 계좌로 입금 부탁드립니다!\n\n💰 [입금 계좌: ${account} ${bank}]\n\n` + 
-                sortedAmts.filter(a => a > 0).map(a => `💵 ${a.toLocaleString()}원 (${grouped[a].length}명)\n${grouped[a].join(', ')}`).join('\n\n');
+
+            resultString = `📢 뒷풀이 정산안내\n최종 정산 결과입니다. 본인의 성함을 확인해 주시고, 아래 계좌로 입금 부탁드립니다!\n\n💰 [입금 계좌: ${account} ${bank}]\n\n` + 
+                sortedAmts.map(a => `💵 ${a.toLocaleString()}원 (${grouped[a].length}명)\n${grouped[a].join(', ')}`).join('\n\n') +
+                `\n\n------------------\n\n${roundSummary}`;
+
             document.getElementById('formatted-text').innerText = resultString;
             document.getElementById('result-modal').classList.remove('hidden');
         });
 
         function closeResult() { document.getElementById('result-modal').classList.add('hidden'); }
-        document.getElementById('copy-result-btn').addEventListener('click', () => { navigator.clipboard.writeText(resultString).then(() => showToast("복사되었습니다!")); });
-        renderParticipants();
+        document.getElementById('copy-result-btn').addEventListener('click', () => { 
+            navigator.clipboard.writeText(resultString).then(() => showToast("안내문이 복사되었습니다!")); 
+        });
+
+        // 페이지 로드 시 데이터 불러오기
+        window.onload = loadData;
     </script>
 </body>
 </html>
