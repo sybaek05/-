@@ -28,10 +28,32 @@
                 </div>
                 <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">만장일치 정산기</h1>
             </div>
-            <p class="text-slate-500 mt-1 text-lg font-medium">자동 저장 기능으로 안심하고 정산하세요!</p>
+            <p class="text-slate-500 mt-1 text-lg font-medium">참가자 명단은 소중하니까, 지우지 않고 유지합니다!</p>
         </header>
 
-        <!-- 1. 참가자 관리 -->
+        <section class="card border-2 border-indigo-100 bg-indigo-50/30">
+            <h2 class="text-xl font-bold mb-4 text-indigo-700 flex items-center gap-2">
+                <span class="text-2xl">⚡</span> 초간편 N빵 계산기
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">결제 총액 (원)</label>
+                    <input type="number" id="simple-total" oninput="doSimpleCalc()" placeholder="예: 50000" class="input-field">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">나눌 인원 (명)</label>
+                    <input type="number" id="simple-count" oninput="doSimpleCalc()" placeholder="예: 5" class="input-field">
+                </div>
+            </div>
+            <div id="simple-result-area" class="hidden bg-white p-4 rounded-xl border border-indigo-100 flex justify-between items-center shadow-sm">
+                <div>
+                    <p class="text-sm text-slate-500">1인당 금액</p>
+                    <p class="text-2xl font-black text-indigo-600"><span id="simple-per-person">0</span>원</p>
+                </div>
+                <button onclick="copySimpleResult()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 active:scale-95 transition-all">결과 복사</button>
+            </div>
+        </section>
+
         <section class="card border border-slate-100">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">1</span> 참가자 등록</h2>
             <div class="flex flex-col sm:flex-row gap-2 mb-4">
@@ -41,7 +63,6 @@
             <div id="participant-list" class="flex flex-wrap gap-2"></div>
         </section>
 
-        <!-- 2. 계좌 정보 설정 -->
         <section class="card border border-slate-100">
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">2</span> 입금 계좌 정보</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -50,21 +71,19 @@
             </div>
         </section>
 
-        <!-- 3. 차수별 비용 입력 -->
         <section id="rounds-section" class="card border border-slate-100">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">3</span> 차수별 비용 입력</h2>
+                <h2 class="text-xl font-bold flex items-center gap-2"><span class="bg-indigo-100 text-indigo-600 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">3</span> 차수별 상세 정산</h2>
                 <button id="add-round-btn" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100">+ 차수 추가</button>
             </div>
             <div id="round-list" class="space-y-4"></div>
         </section>
 
         <div class="flex gap-3 justify-center my-10">
-            <button onclick="resetData()" class="bg-slate-200 text-slate-600 text-lg font-bold px-8 py-4 rounded-2xl hover:bg-slate-300 transition-all">전체 초기화</button>
-            <button id="calculate-btn" class="bg-slate-900 text-white text-xl font-bold px-12 py-4 rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95">정산하기</button>
+            <button onclick="resetRoundsOnly()" class="bg-slate-200 text-slate-600 text-lg font-bold px-8 py-4 rounded-2xl hover:bg-slate-300 transition-all">정산 내역 초기화</button>
+            <button id="calculate-btn" class="bg-slate-900 text-white text-xl font-bold px-12 py-4 rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95">상세 정산하기</button>
         </div>
 
-        <!-- 결과 모달 -->
         <div id="result-modal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                 <div class="p-6 border-b flex justify-between items-center bg-white">
@@ -85,46 +104,81 @@
     </div>
 
     <script>
-        // 초기 데이터 (기존 기록이 있으면 불러오고 없으면 기본값)
         let participants = [];
         let rounds = [];
 
-        // 데이터 저장 함수
         function saveData() {
             const data = {
                 participants,
                 rounds,
                 bankInfo: document.getElementById('bank-info').value,
-                accountNumber: document.getElementById('account-number').value
+                accountNumber: document.getElementById('account-number').value,
+                simpleTotal: document.getElementById('simple-total').value,
+                simpleCount: document.getElementById('simple-count').value
             };
             localStorage.setItem('mj_settle_data', JSON.stringify(data));
         }
 
-        // 데이터 불러오기 함수
         function loadData() {
             const saved = localStorage.getItem('mj_settle_data');
             if (saved) {
                 const data = JSON.parse(saved);
                 participants = data.participants || [];
                 rounds = data.rounds || [];
-                document.getElementById('bank-info').value = data.bankInfo || "카카오뱅크 백승엽";
-                document.getElementById('account-number').value = data.accountNumber || "3333345184515";
+                document.getElementById('bank-info').value = data.bankInfo || "";
+                document.getElementById('account-number').value = data.accountNumber || "";
+                document.getElementById('simple-total').value = data.simpleTotal || "";
+                document.getElementById('simple-count').value = data.simpleCount || "";
+                doSimpleCalc();
             } else {
-                // 저장된 게 아예 없을 때 초기 예시 데이터
-                participants = ["김재동", "이유동", "백승엽", "김영수", "박정은", "송형록", "최은비", "한나결"];
-                rounds = [{ description: '1차 장소', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
+                participants = ["김재동", "이유동", "백승엽", "김영수", "박정은", "송형록"];
+                rounds = [{ description: '1차 고기집', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
                 document.getElementById('bank-info').value = "카카오뱅크 백승엽";
                 document.getElementById('account-number').value = "3333345184515";
             }
             renderParticipants();
         }
 
-        // 전체 초기화
-        function resetData() {
-            if(confirm("모든 입력 내역을 삭제하시겠습니까? (참가자 명단 포함)")) {
-                localStorage.removeItem('mj_settle_data');
-                location.reload();
+        // ⚡ [수정됨] 정산 내역만 초기화 (참가자 유지)
+        function resetRoundsOnly() {
+            if(confirm("입력된 모든 '차수별 내역'과 '간편 계산기' 수치를 초기화하시겠습니까? (참가자 명단과 계좌 정보는 그대로 유지됩니다)")) {
+                // 1. 차수 내역 비우고 1차만 남기기
+                rounds = [{ description: '1차 장소', totalCost: 0, alcoholCost: 0, attendees: [...participants], drinkers: [...participants] }];
+                
+                // 2. 간편 계산기 비우기
+                document.getElementById('simple-total').value = "";
+                document.getElementById('simple-count').value = "";
+                
+                // 3. UI 갱신 및 저장
+                doSimpleCalc();
+                saveData();
+                renderRounds();
+                showToast("정산 내역만 초기화되었습니다!");
             }
+        }
+
+        function doSimpleCalc() {
+            const total = Number(document.getElementById('simple-total').value);
+            const count = Number(document.getElementById('simple-count').value);
+            const resArea = document.getElementById('simple-result-area');
+            const perPerson = document.getElementById('simple-per-person');
+
+            if (total > 0 && count > 0) {
+                const result = Math.floor(total / count);
+                perPerson.innerText = result.toLocaleString();
+                resArea.classList.remove('hidden');
+            } else {
+                resArea.classList.add('hidden');
+            }
+            saveData();
+        }
+
+        function copySimpleResult() {
+            const amt = document.getElementById('simple-per-person').innerText;
+            const bank = document.getElementById('bank-info').value;
+            const acc = document.getElementById('account-number').value;
+            const txt = `⚡ N빵 정산 결과\n인당 ${amt}원씩 입금 부탁드립니다!\n💰 계좌: ${acc} ${bank}`;
+            navigator.clipboard.writeText(txt).then(() => showToast("간편 결과가 복사되었습니다!"));
         }
 
         function showToast(msg) { const toast = document.getElementById('toast'); toast.innerText = msg; toast.style.opacity = '1'; setTimeout(() => toast.style.opacity = '0', 2000); }
@@ -216,20 +270,16 @@
         document.getElementById('calculate-btn').addEventListener('click', () => {
             if (participants.length === 0) return showToast("참가자를 등록해주세요.");
             const totals = {}; participants.forEach(p => totals[p] = 0);
-            
             let roundSummary = "📊 차수별 요약 (참고용)\n\n";
             rounds.forEach((r, idx) => {
                 const foodPer = r.attendees.length ? (r.totalCost - r.alcoholCost) / r.attendees.length : 0;
                 const drinkPer = r.drinkers.length ? r.alcoholCost / r.drinkers.length : 0;
-                
                 participants.forEach(p => { 
                     if(r.attendees.includes(p)) totals[p] += foodPer; 
                     if(r.drinkers.includes(p)) totals[p] += drinkPer; 
                 });
-                
                 roundSummary += `[${idx + 1}차: ${r.description}] 총액: ${r.totalCost.toLocaleString()}원 (${r.attendees.length}명 참석)\n`;
             });
-
             const grouped = {}; 
             participants.forEach(p => { 
                 const amt = Math.floor(totals[p]); 
@@ -238,15 +288,12 @@
                     grouped[amt].push(p); 
                 }
             });
-
             const sortedAmts = Object.keys(grouped).map(Number).sort((a,b) => b-a);
             const bank = document.getElementById('bank-info').value;
             const account = document.getElementById('account-number').value;
-
             resultString = `📢 뒷풀이 정산안내\n최종 정산 결과입니다. 본인의 성함을 확인해 주시고, 아래 계좌로 입금 부탁드립니다!\n\n💰 [입금 계좌: ${account} ${bank}]\n\n` + 
                 sortedAmts.map(a => `💵 ${a.toLocaleString()}원 (${grouped[a].length}명)\n${grouped[a].join(', ')}`).join('\n\n') +
                 `\n\n------------------\n\n${roundSummary}`;
-
             document.getElementById('formatted-text').innerText = resultString;
             document.getElementById('result-modal').classList.remove('hidden');
         });
@@ -256,7 +303,6 @@
             navigator.clipboard.writeText(resultString).then(() => showToast("안내문이 복사되었습니다!")); 
         });
 
-        // 페이지 로드 시 데이터 불러오기
         window.onload = loadData;
     </script>
 </body>
